@@ -5,9 +5,10 @@ import asyncio
 from pyppeteer import launch
 import json
 import pandas as pd
-from tabulate import tabulate
+from IPython.display import display
+import ipywidgets as widgets
 
-#list to store extracted data
+# A global list to store extracted data
 extracted_data = []
 
 async def intercept_request(req):
@@ -32,7 +33,7 @@ async def intercept_request(req):
 
     await req.continue_()
 
-async def main():
+async def main(url):
     browser = await launch()
     page = await browser.newPage()
 
@@ -40,24 +41,27 @@ async def main():
     await page.setRequestInterception(True)
     page.on('request', lambda req: asyncio.ensure_future(intercept_request(req)))
 
-    await page.goto('https://www.lenovo.com/us/en/phones/')
-    await asyncio.sleep(10)  # 10 seconds to ensure all requests are captured
+    await page.goto(url)
+    await asyncio.sleep(10)  # wait for 10 seconds to ensure all requests are captured
 
     await browser.close()
 
-    # Convert extracted data to a pandas DataFrame
+    # Convert the extracted data to a pandas DataFrame
     df = pd.DataFrame(extracted_data)
     await browser.close()
 
-    # Adjust display options
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', -1)
-    # Print the DataFrame in a tabular format
-    print(tabulate(df, headers='keys', tablefmt='grid'))
+    # Display the DataFrame
+    display(df)
 
-asyncio.get_event_loop().run_until_complete(main())
+# Create widgets
+url_input = widgets.Text(value='https://www.lenovo.com/us/en/accessories-and-software/', placeholder='Enter URL', description='URL:', disabled=False)
+start_button = widgets.Button(description="Start Extraction")
+output = widgets.Output()
+
+def on_button_click(b):
+    with output:
+        asyncio.get_event_loop().run_until_complete(main(url_input.value))
+
 start_button.on_click(on_button_click)
 
 # Display the widgets
